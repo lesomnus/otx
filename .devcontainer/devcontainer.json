@@ -1,0 +1,15 @@
+{
+	"name": "lesomnus.otx",
+	"dockerComposeFile": "docker-compose.yaml",
+	"service": "dev",
+	"workspaceFolder": "/workspace/otx",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.go",
+				"jinliming2.vscode-go-template",
+				"streetsidesoftware.code-spell-checker"
+			]
+		}
+	}
+}
