@@ -33,3 +33,13 @@ func (h serverHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) con
 	ctx = otx.Into(ctx, h.otx)
 	return ctx
 }
+
+func NewClientHandler(otx *otx.Otx, opts ...otelgrpc.Option) stats.Handler {
+	ps := otx.Providers()
+	opts = append([]otelgrpc.Option{
+		otelgrpc.WithTracerProvider(ps.Tracer()),
+		otelgrpc.WithMeterProvider(ps.Meter()),
+	}, opts...)
+
+	return otelgrpc.NewClientHandler(opts...)
+}

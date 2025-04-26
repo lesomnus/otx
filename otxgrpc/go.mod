@@ -3,7 +3,7 @@ module github.com/lesomnus/otx/otxgrpc
 go 1.24.1
 
 require (
-	github.com/lesomnus/otx v0.0.0-20250422070316-3f3898dde0f5
+	github.com/lesomnus/otx v0.0.0-20250426073415-2dc8a7142fd0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	go.opentelemetry.io/otel/log v0.11.0

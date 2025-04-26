@@ -26,7 +26,7 @@ func (h boundaryLogger) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 	l := log.From(ctx)
 	switch rs := rs.(type) {
 	case *stats.InHeader:
-		l.Info("", tag.Ingress(rs.FullMethod))
+		l.Info("in", tag.Ingress(rs.FullMethod))
 	case *stats.End:
 		dt := rs.EndTime.Sub(rs.BeginTime)
 		level := slog.LevelInfo
@@ -38,7 +38,8 @@ func (h boundaryLogger) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 			attrs = append(attrs, slog.Int("code", code))
 		}
 
-		l.Log(ctx, level, "", attrs...)
+		ctx := context.WithoutCancel(ctx)
+		l.Log(ctx, level, "out", attrs...)
 	}
 }
 
