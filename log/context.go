@@ -6,6 +6,7 @@ import (
 
 	"github.com/lesomnus/otx"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ctxKey struct{}
@@ -25,5 +26,13 @@ func From(ctx context.Context) *slog.Logger {
 		h = otelslog.NewHandler(otx.Scope, otelslog.WithLoggerProvider(lp))
 	}
 
-	return slog.New(WithContext(ctx, h))
+	l := slog.New(WithContext(ctx, h))
+	if span := trace.SpanContextFromContext(ctx); span.IsValid() {
+		l = l.With(
+			slog.String("trace_id", span.TraceID().String()),
+			slog.String("span_id", span.SpanID().String()),
+		)
+	}
+
+	return l
 }

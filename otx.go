@@ -15,9 +15,9 @@ const Scope string = "github.com/lesomnus/otx"
 type ctxKey struct{}
 
 type Otx struct {
-	tracer_provider trace.TracerProvider
-	meter_provider  metric.MeterProvider
-	logger_provider log.LoggerProvider
+	Controller
+
+	providers providerSet
 
 	tracer trace.Tracer
 	meter  metric.Meter
@@ -26,9 +26,13 @@ type Otx struct {
 
 func New(opts ...Option) *Otx {
 	v := &Otx{
-		tracer_provider: otel.GetTracerProvider(),
-		meter_provider:  otel.GetMeterProvider(),
-		logger_provider: noop.NewLoggerProvider(),
+		Controller: noopController{},
+
+		providers: providerSet{
+			tracer_provider: otel.GetTracerProvider(),
+			meter_provider:  otel.GetMeterProvider(),
+			logger_provider: noop.NewLoggerProvider(),
+		},
 
 		tracer: otel.Tracer(Scope),
 		meter:  otel.Meter(Scope),
@@ -42,18 +46,14 @@ func New(opts ...Option) *Otx {
 }
 
 func (o *Otx) Providers() ProviderSet {
-	return providerSet{
-		tracer_provider: o.tracer_provider,
-		meter_provider:  o.meter_provider,
-		logger_provider: o.logger_provider,
-	}
+	return o.providers
 }
 
 func Into(ctx context.Context, v *Otx) context.Context {
 	return context.WithValue(ctx, ctxKey{}, v)
 }
 
-func from(ctx context.Context) *Otx {
+func From(ctx context.Context) *Otx {
 	v, ok := ctx.Value(ctxKey{}).(*Otx)
 	if !ok {
 		return New()
@@ -62,20 +62,28 @@ func from(ctx context.Context) *Otx {
 	return v
 }
 
+func Start(ctx context.Context) error {
+	return From(ctx).Start(ctx)
+}
+
+func Shutdown(ctx context.Context) error {
+	return From(ctx).Start(ctx)
+}
+
 func Tracer(ctx context.Context) trace.Tracer {
-	return from(ctx).tracer
+	return From(ctx).tracer
 }
 
 func TraceStart(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	return from(ctx).tracer.Start(ctx, name, opts...)
+	return From(ctx).tracer.Start(ctx, name, opts...)
 }
 
 func Meter(ctx context.Context) metric.Meter {
-	return from(ctx).meter
+	return From(ctx).meter
 }
 
 func Logger(ctx context.Context) log.Logger {
-	return from(ctx).logger
+	return From(ctx).logger
 }
 
 type ProviderSet interface {
@@ -91,7 +99,7 @@ type providerSet struct {
 }
 
 func Providers(ctx context.Context) ProviderSet {
-	return from(ctx).Providers()
+	return From(ctx).Providers()
 }
 
 func (s providerSet) Tracer() trace.TracerProvider {

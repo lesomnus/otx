@@ -40,8 +40,8 @@ func (s *Server) GetFeature(ctx context.Context, point *Point) (*Feature, error)
 	ctx, span := otx.TraceStart(ctx, "getFeature")
 	// or otx.Tracer(ctx).Start(context.TODO(), "getFeature")
 
-	// slog.Logger is instantiated from the OpenTelemetry logger you injected
-	// using "go.opentelemetry.io/contrib/bridges/otelslog"
+	// slog.Logger is created from the OpenTelemetry logger you injected
+	// using "go.opentelemetry.io/contrib/bridges/otelslog".
 	l := log.From(ctx)
 	l.Info("hello")
 	

@@ -8,23 +8,29 @@ import (
 
 type Option func(otx *Otx)
 
+func WithController(controller Controller) Option {
+	return func(otx *Otx) {
+		otx.Controller = controller
+	}
+}
+
 func WithTracerProvider(provider trace.TracerProvider) Option {
 	return func(otx *Otx) {
-		otx.tracer_provider = provider
+		otx.providers.tracer_provider = provider
 		otx.tracer = provider.Tracer(Scope)
 	}
 }
 
 func WithMeterProvider(provider metric.MeterProvider) Option {
 	return func(otx *Otx) {
-		otx.meter_provider = provider
+		otx.providers.meter_provider = provider
 		otx.meter = provider.Meter(Scope)
 	}
 }
 
 func WithLoggerProvider(provider log.LoggerProvider) Option {
 	return func(otx *Otx) {
-		otx.logger_provider = provider
+		otx.providers.logger_provider = provider
 		otx.logger = provider.Logger(Scope)
 	}
 }
