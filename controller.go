@@ -3,6 +3,7 @@ package otx
 import "context"
 
 type Controller interface {
+	// Shutdown itself if failed to start.
 	Start(ctx context.Context) error
 	Shutdown(ctx context.Context) error
 }

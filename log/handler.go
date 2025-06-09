@@ -30,3 +30,13 @@ func (h handler) Handle(ctx context.Context, record slog.Record) error {
 
 	return h.Handler.Handle(ctx, record)
 }
+
+func (h handler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	h.Handler = h.Handler.WithAttrs(attrs)
+	return h
+}
+
+func (h handler) WithGroup(name string) slog.Handler {
+	h.Handler = h.Handler.WithGroup(name)
+	return h
+}
