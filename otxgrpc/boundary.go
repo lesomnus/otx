@@ -35,7 +35,10 @@ func (h boundaryLogger) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 			level = slog.LevelWarn
 
 			code := int(status.Code(rs.Error))
-			attrs = append(attrs, slog.Int("code", code))
+			attrs = append(attrs,
+				slog.Int("code", code),
+				slog.String("err", rs.Error.Error()),
+			)
 		}
 
 		ctx := context.WithoutCancel(ctx)
