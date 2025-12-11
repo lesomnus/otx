@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const TitleKey = "internal.otx.title"
+const TitleKey = "app.widget.name"
 
 func Title(title string) slog.Attr {
 	a := slog.String(TitleKey, title)
