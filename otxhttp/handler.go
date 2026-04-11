@@ -18,8 +18,9 @@ func NewMiddleware(x *otx.Otx, op string, opts ...otelhttp.Option) func(http.Han
 		otelhttp.WithMeterProvider(ps.Meter()),
 	}, opts...)
 
+	mw := otelhttp.NewMiddleware(op, opts...)
 	return func(h http.Handler) http.Handler {
-		next := otelhttp.NewMiddleware(op, opts...)(h)
+		next := mw(h)
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := otx.Into(r.Context(), x)
 			r = r.WithContext(ctx)

@@ -68,6 +68,9 @@ func (t TransportLogger) RoundTrip(r *http.Request) (res *http.Response, err err
 }
 
 func NewTransport(base http.RoundTripper, opts ...otelhttp.Option) http.RoundTripper {
+	if base == nil {
+		base = http.DefaultTransport
+	}
 	return otelhttp.NewTransport(TransportLogger{base}, opts...)
 }
 
