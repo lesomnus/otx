@@ -97,8 +97,11 @@ func (h serverLogger) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 	case *stats.End:
 		dt := rs.EndTime.Sub(rs.BeginTime)
 
+		st, _ := status.FromError(rs.Error)
+		code := st.Code()
+		msg := st.Message()
+
 		level := slog.LevelWarn
-		code := status.Code(rs.Error)
 		switch code {
 		case codes.OK:
 			level = slog.LevelInfo
@@ -107,8 +110,13 @@ func (h serverLogger) HandleRPC(ctx context.Context, rs stats.RPCStats) {
 		}
 
 		attrs := []any{
-			slog.Int(string(semconv.RPCGRPCStatusCodeKey), int(status.Code(rs.Error))),
+			slog.Int(string(semconv.RPCGRPCStatusCodeKey), int(code)),
 			slog.Int64("server.elapsed_ns", dt.Nanoseconds()),
+		}
+		if msg != "" {
+			attrs = append(attrs,
+				slog.String("server.status_message", msg),
+			)
 		}
 		if l.client_stream {
 			// Client streaming or bidi
