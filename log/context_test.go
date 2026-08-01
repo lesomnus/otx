@@ -27,7 +27,8 @@ func TestFrom(t *testing.T) {
 		}
 
 		ctx := log.Into(t.Context(), slog.New(h))
-		ctx_child, _ := context.WithCancel(ctx)
+		ctx_child, cancel := context.WithCancel(ctx)
+		defer cancel()
 		log.From(ctx_child).Info("foo")
 
 		require.NotEqual(t, ctx, h.ctx)
