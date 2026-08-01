@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            otxgrpc/go.sum
+            otxhttp/go.sum
+            otxsdk/go.sum
+
+      # Each submodule replaces the root with ../, so this exercises the
+      # submodules against the root as it stands in this commit.
+      - name: build, vet and test every module
+        run: |
+          set -eux
+          for m in . otxgrpc otxhttp otxsdk; do
+            (cd "$m" && go build ./... && go vet ./... && go test ./... -race -count=1)
+          done
+
+      - name: check formatting
+        run: |
+          set -eu
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then
+            echo "not gofmt'd:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: check go.mod is tidy
+        run: |
+          set -eux
+          for m in . otxgrpc otxhttp otxsdk; do
+            (cd "$m" && go mod tidy -diff)
+          done
+
+  # The replace directives above hide whether a submodule would still build for
+  # someone who just runs "go get". This drops them and builds against the
+  # version each submodule actually requires. It is expected to fail between a
+  # root change and the release that follows it, so it does not block the run.
+  released:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: build submodules against the required root version
+        run: |
+          set -eux
+          for m in otxgrpc otxhttp otxsdk; do
+            (cd "$m" && go mod edit -dropreplace=github.com/lesomnus/otx && go build ./...)
+          done
