@@ -227,7 +227,7 @@ func TestShutdownProviders(t *testing.T) {
 		require.Zero(t, pr.shutdown_n, "WithPropagator takes no ownership")
 		require.Zero(t, pr.flush_n, "WithPropagator takes no ownership")
 	})
-	t.Run("shuts down the controller first and then the providers in signal order", func(t *testing.T) {
+	t.Run("shuts down the providers in signal order and then the controller", func(t *testing.T) {
 		order := []string{}
 		c := &stubController{name: "controller", trace: &order}
 		tp := &stubTracerProvider{lifecycleTrace: lifecycleTrace{name: "tracer", trace: &order}}
@@ -245,11 +245,33 @@ func TestShutdownProviders(t *testing.T) {
 
 		require.NoError(t, x.Shutdown(ctx))
 		require.Equal(t, []string{
-			"shutdown:controller",
 			"shutdown:tracer",
 			"shutdown:meter",
 			"shutdown:logger",
+			"shutdown:controller",
 		}, order)
+	})
+	t.Run("a provider flushes before the controller closes what it flushes into", func(t *testing.T) {
+		// The reason for that order, as the failure it prevents. A Controller
+		// that owns the exporter - which is what a resolver built from a
+		// configuration file gives you - would otherwise close it before the
+		// batch processor gets to flush, and the batch would be dropped
+		// without Shutdown reporting anything.
+		exporter := &recordingSpanExporter{}
+		tracer_provider := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))
+
+		x := otx.New(
+			otx.WithTracerProvider(tracer_provider),
+			otx.WithController(otx.NewController(nil, exporter.Shutdown)),
+		)
+
+		_, span := x.TraceStart(ctx, "work")
+		span.End()
+		require.Zero(t, exporter.Exported(), "a batch processor exports nothing until it is flushed")
+
+		require.NoError(t, x.Shutdown(ctx))
+		require.Equal(t, 1, exporter.Exported())
+		require.False(t, exporter.ExportedLate(), "the span was flushed into an exporter that was already shut down")
 	})
 	t.Run("a provider given to two signals is shut down once", func(t *testing.T) {
 		// One object can serve more than one signal. Its hooks are registered

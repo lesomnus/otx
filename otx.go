@@ -216,16 +216,22 @@ func (o *Otx) Start(ctx context.Context) error {
 	return o.controller.Start(ctx)
 }
 
-// Shutdown shuts down the [Controller] given by [WithController] and then the
-// providers this Otx owns, joining every error. Repeated calls return the
+// Shutdown shuts down the providers this Otx owns and then the [Controller]
+// given by [WithController], joining every error. Repeated calls return the
 // result of the first one.
+//
+// The providers go first because they sit on top: shutting one down is what
+// flushes the last batch, and the exporter it flushes into is exactly the kind
+// of thing a Controller owns. The other order loses that batch, and silently,
+// since an exporter that has already been shut down reports the refusal to the
+// OpenTelemetry error handler rather than to Shutdown.
 func (o *Otx) Shutdown(ctx context.Context) error {
 	o.shutdown_once.Do(func() {
 		errs := make([]error, 0, len(o.shutdowns)+1)
-		errs = append(errs, o.controller.Shutdown(ctx))
 		for _, f := range o.shutdowns {
 			errs = append(errs, f(ctx))
 		}
+		errs = append(errs, o.controller.Shutdown(ctx))
 
 		o.shutdown_err = errors.Join(errs...)
 	})

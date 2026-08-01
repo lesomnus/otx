@@ -2,6 +2,9 @@ package otx_test
 
 import (
 	"context"
+	"errors"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"sync"
 
 	"go.opentelemetry.io/otel/log"
 	lognoop "go.opentelemetry.io/otel/log/noop"
@@ -298,4 +301,48 @@ type uncomparableProvider struct {
 func (p uncomparableProvider) Shutdown(ctx context.Context) error {
 	*p.shutdown_n++
 	return nil
+}
+
+// recordingSpanExporter stands in for the component a lifecycle Controller
+// owns: a provider flushes into it, and something else closes it. It reports
+// whether that happened in the wrong order.
+type recordingSpanExporter struct {
+	mu       sync.Mutex
+	exported int
+	is_close bool
+	is_late  bool
+}
+
+func (e *recordingSpanExporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.is_close {
+		e.is_late = true
+		return errors.New("exporter is shut down")
+	}
+	e.exported += len(spans)
+
+	return nil
+}
+
+func (e *recordingSpanExporter) Shutdown(ctx context.Context) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.is_close = true
+
+	return nil
+}
+
+func (e *recordingSpanExporter) Exported() int {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exported
+}
+
+func (e *recordingSpanExporter) ExportedLate() bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.is_late
 }
