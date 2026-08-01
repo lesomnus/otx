@@ -67,5 +67,11 @@ jobs:
         run: |
           set -eux
           for m in otxgrpc otxhttp otxsdk; do
-            (cd "$m" && go mod edit -dropreplace=github.com/lesomnus/otx && go build ./...)
+            # go.sum carries no hash for a module that is replaced by a
+            # directory, so the sum has to be fetched once the replace is gone
+            # or the build fails for that rather than for the version.
+            (cd "$m" \
+              && go mod edit -dropreplace=github.com/lesomnus/otx \
+              && go mod download github.com/lesomnus/otx \
+              && go build ./...)
           done
