@@ -582,11 +582,15 @@ func TestHandleRPCWithoutTagRPC(t *testing.T) {
 	}{
 		{
 			desc: "the server logger",
-			new:  otxgrpc.NewServerLogger,
+			new: func(x *otx.Otx) stats.Handler {
+				return otxgrpc.NewServerLogger(x)
+			},
 		},
 		{
 			desc: "the client logger",
-			new:  otxgrpc.NewClientLogger,
+			new: func(x *otx.Otx) stats.Handler {
+				return otxgrpc.NewClientLogger(x)
+			},
 		},
 		{
 			desc: "the server handler",

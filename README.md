@@ -155,6 +155,19 @@ server := grpc.NewServer(
 stats handlers in registration order, so register the tracing handler **first** — the log records then
 carry the ids of its span.
 
+Both loggers take `WithFilter` for the RPCs that are polled rather than called — a health check every
+few seconds, from every replica, arrives often enough to be most of what is kept and says nothing that
+reading it will repay:
+
+```go
+grpc.StatsHandler(otxgrpc.NewServerLogger(x, otxgrpc.WithFilter(func(i *stats.RPCTagInfo) bool {
+	return !strings.HasPrefix(i.FullMethodName, "/grpc.health.v1.Health/")
+}))),
+```
+
+What it filters is the records that logger writes. The RPC still carries the `*otx.Otx` and the
+`rpc.service` and `rpc.method` attributes, and the tracing handler decides for itself.
+
 ### HTTP
 
 ```go

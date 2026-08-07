@@ -38,13 +38,15 @@ const (
 // it after [NewServerHandler] is still preferable: the server span exists by
 // then, so the records carry its ids.
 //
+// See [WithFilter] for leaving out the RPCs that are polled rather than called.
+//
 // It panics if x is nil, at wiring time rather than on the first RPC.
-func NewServerLogger(x *otx.Otx) stats.Handler {
+func NewServerLogger(x *otx.Otx, opts ...Option) stats.Handler {
 	if x == nil {
 		panic("otxgrpc: NewServerLogger called with a nil *otx.Otx")
 	}
 
-	return rpcLogger{otx: x}
+	return newRPCLogger(x, false, opts)
 }
 
 // NewClientLogger returns a [google.golang.org/grpc/stats.Handler] that writes
@@ -52,17 +54,30 @@ func NewServerLogger(x *otx.Otx) stats.Handler {
 // ("gRPC res").
 //
 // It panics if x is nil, at wiring time rather than on the first RPC.
-func NewClientLogger(x *otx.Otx) stats.Handler {
+func NewClientLogger(x *otx.Otx, opts ...Option) stats.Handler {
 	if x == nil {
 		panic("otxgrpc: NewClientLogger called with a nil *otx.Otx")
 	}
 
-	return rpcLogger{otx: x, is_client: true}
+	return newRPCLogger(x, true, opts)
+}
+
+func newRPCLogger(x *otx.Otx, is_client bool, opts []Option) rpcLogger {
+	l := rpcLogger{otx: x, is_client: is_client}
+	for _, o := range opts {
+		o.apply(&l)
+	}
+
+	return l
 }
 
 type rpcLogger struct {
 	otx       *otx.Otx
 	is_client bool
+
+	// filter is asked of every RPC, and nothing is written for one it declines.
+	// Nil is everything.
+	filter Filter
 }
 
 type logCtxKey struct{}
@@ -109,6 +124,13 @@ func (h rpcLogger) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.C
 		)
 	}
 	ctx = log.Into(ctx, l)
+
+	if f := h.filter; f != nil && !f(info) {
+		// Nothing is stashed, and HandleRPC writes nothing it cannot find. What
+		// the RPC itself is served with is left as it was: a filter says which
+		// records this handler writes, not what the call can reach.
+		return ctx
+	}
 
 	return context.WithValue(ctx, logCtxKey{}, &logCtx{})
 }
