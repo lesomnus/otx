@@ -11,6 +11,7 @@ import (
 	"github.com/lesomnus/otx"
 	"github.com/lesomnus/otx/otxhttp"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -295,8 +296,8 @@ func TestBoundaryLogger(t *testing.T) {
 		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v/42", nil))
 
 		out := h.record(t, "HTTP out")
-		require.Equal(t, otellog.KindInt64, attr(t, out, "http.response.body.size").Kind())
-		require.Equal(t, otellog.KindInt64, attr(t, out, "server.elapsed_ns").Kind())
+		require.Equal(t, attribute.INT64, attr(t, out, "http.response.body.size").Type())
+		require.Equal(t, attribute.INT64, attr(t, out, "server.elapsed_ns").Type())
 		require.EqualValues(t, 2*len(body), requireInt64Attr(t, out, "http.response.body.size"))
 	})
 

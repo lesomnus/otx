@@ -19,6 +19,7 @@ import (
 	"github.com/lesomnus/otx/otxtest"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -136,8 +137,8 @@ var _ trace.Span = (*spanProbe)(nil)
 // be asserted rather than only "they are all there".
 func exportedKeys(record sdklog.Record) []string {
 	keys := []string{}
-	record.WalkAttributes(func(kv otellog.KeyValue) bool {
-		keys = append(keys, kv.Key)
+	record.WalkAttributes(func(kv attribute.KeyValue) bool {
+		keys = append(keys, string(kv.Key))
 		return true
 	})
 
@@ -962,8 +963,8 @@ func TestRecordError(t *testing.T) {
 		require.Equal(t, []string{log.ErrorTypeKey, log.ErrorMessageKey, "g"}, exportedKeys(record))
 
 		g := exportedAttrs(record)["g"]
-		require.Equal(t, otellog.KindMap, g.Kind(), "the group was flattened")
-		require.Equal(t, []otellog.KeyValue{otellog.String("k", "v")}, g.AsMap())
+		require.Equal(t, attribute.MAP, g.Type(), "the group was flattened")
+		require.Equal(t, []attribute.KeyValue{attribute.String("k", "v")}, g.AsMap())
 	})
 	t.Run("a span that has already ended is left alone but the record is written", func(t *testing.T) {
 		h := otxtest.New(t)

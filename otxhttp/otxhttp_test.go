@@ -10,6 +10,7 @@ import (
 	"github.com/lesomnus/otx"
 	"github.com/lesomnus/otx/otxmem"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/embedded"
 	"go.opentelemetry.io/otel/metric"
@@ -98,8 +99,8 @@ func (h *harness) record(t *testing.T, msg string) sdklog.Record {
 // attrCount reports how many attributes of r carry the given key.
 func attrCount(r sdklog.Record, key string) int {
 	n := 0
-	r.WalkAttributes(func(kv otellog.KeyValue) bool {
-		if kv.Key == key {
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) == key {
 			n++
 		}
 
@@ -110,13 +111,13 @@ func attrCount(r sdklog.Record, key string) int {
 }
 
 // attr returns the value of the single attribute of r with the given key.
-func attr(t *testing.T, r sdklog.Record, key string) otellog.Value {
+func attr(t *testing.T, r sdklog.Record, key string) attribute.Value {
 	t.Helper()
 
-	var v otellog.Value
+	var v attribute.Value
 	require.Equalf(t, 1, attrCount(r, key), "want exactly one %q attribute in %q, got %d", key, r.Body().AsString(), attrCount(r, key))
-	r.WalkAttributes(func(kv otellog.KeyValue) bool {
-		if kv.Key != key {
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) != key {
 			return true
 		}
 
@@ -139,7 +140,7 @@ func requireInt64Attr(t *testing.T, r sdklog.Record, key string) int64 {
 	t.Helper()
 
 	v := attr(t, r, key)
-	require.Equalf(t, otellog.KindInt64, v.Kind(), "want %q to be an int64 attribute", key)
+	require.Equalf(t, attribute.INT64, v.Type(), "want %q to be an int64 attribute", key)
 
 	return v.AsInt64()
 }
@@ -231,8 +232,8 @@ func (p *apiRecorder) record(t *testing.T, msg string) otellog.Record {
 // apiAttrCount reports how many attributes of r carry the given key.
 func apiAttrCount(r otellog.Record, key string) int {
 	n := 0
-	r.WalkAttributes(func(kv otellog.KeyValue) bool {
-		if kv.Key == key {
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) == key {
 			n++
 		}
 
