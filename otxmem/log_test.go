@@ -9,14 +9,18 @@ import (
 
 	"github.com/lesomnus/otx/otxmem"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/log/logtest"
 )
 
 // newRecord builds an SDK record as an exporter would receive one.
-func newRecord(body string, attrs ...log.KeyValue) sdklog.Record {
-	r := sdklog.Record{}
-	r.SetBody(log.StringValue(body))
+func newRecord(body string, attrs ...attribute.KeyValue) sdklog.Record {
+	// The SDK's own factory, since a zero Record keeps no attributes: its
+	// limit is the zero one a provider never gives it.
+	r := logtest.RecordFactory{}.NewRecord()
+	r.SetBody(attribute.StringValue(body))
 	r.SetSeverity(log.SeverityInfo)
 	r.AddAttributes(attrs...)
 
@@ -32,15 +36,15 @@ func bodiesOf(records []sdklog.Record) []string {
 	return rst
 }
 
-func attrOf(t *testing.T, r sdklog.Record, key string) log.Value {
+func attrOf(t *testing.T, r sdklog.Record, key string) attribute.Value {
 	t.Helper()
 
 	var (
-		rst      log.Value
+		rst      attribute.Value
 		is_found bool
 	)
-	r.WalkAttributes(func(kv log.KeyValue) bool {
-		if kv.Key != key {
+	r.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) != key {
 			return true
 		}
 
@@ -68,9 +72,9 @@ func TestLogExporter(t *testing.T) {
 		logger := provider.Logger("otxmem-test")
 		for _, msg := range []string{"foo", "bar", "baz"} {
 			r := log.Record{}
-			r.SetBody(log.StringValue(msg))
+			r.SetBody(attribute.StringValue(msg))
 			r.SetSeverity(log.SeverityWarn)
-			r.AddAttributes(log.String("msg", msg))
+			r.AddAttributes(attribute.String("msg", msg))
 			logger.Emit(t.Context(), r)
 		}
 
@@ -127,18 +131,18 @@ func TestLogExporter(t *testing.T) {
 		// More attributes than a record holds inline, so that some of them
 		// spill into the slice the record allocates; that slice is the part
 		// a shallow copy would share with the caller.
-		attrs := make([]log.KeyValue, 8)
+		attrs := make([]attribute.KeyValue, 8)
 		for i := range attrs {
-			attrs[i] = log.Int(fmt.Sprintf("k%d", i), i)
+			attrs[i] = attribute.Int(fmt.Sprintf("k%d", i), i)
 		}
 
 		records := []sdklog.Record{newRecord("origin", attrs...)}
 		require.NoError(t, exporter.Export(t.Context(), records))
 
 		// The SDK reuses the storage behind a record once Export returns.
-		records[0].SetBody(log.StringValue("mutated"))
+		records[0].SetBody(attribute.StringValue("mutated"))
 		records[0].SetSeverity(log.SeverityError)
-		records[0].AddAttributes(log.Int("k0", 100), log.Int("k7", 700))
+		records[0].AddAttributes(attribute.Int("k0", 100), attribute.Int("k7", 700))
 		records[0] = sdklog.Record{}
 
 		stored := exporter.Records()
@@ -156,16 +160,16 @@ func TestLogExporter(t *testing.T) {
 		// through a returned record is visible to the exporter.
 		exporter := &otxmem.LogExporter{}
 
-		attrs := make([]log.KeyValue, 8)
+		attrs := make([]attribute.KeyValue, 8)
 		for i := range attrs {
-			attrs[i] = log.Int(fmt.Sprintf("k%d", i), i)
+			attrs[i] = attribute.Int(fmt.Sprintf("k%d", i), i)
 		}
 		require.NoError(t, exporter.Export(t.Context(), []sdklog.Record{newRecord("origin", attrs...)}))
 
 		out := exporter.Records()
 		require.Len(t, out, 1)
-		out[0].SetBody(log.StringValue("mutated"))
-		out[0].AddAttributes(log.Int("k0", 100), log.Int("k7", 700))
+		out[0].SetBody(attribute.StringValue("mutated"))
+		out[0].AddAttributes(attribute.Int("k0", 100), attribute.Int("k7", 700))
 
 		stored := exporter.Records()
 		require.Len(t, stored, 1)
@@ -225,13 +229,13 @@ func TestLogExporter(t *testing.T) {
 		logger := provider.Logger("otxmem-test")
 
 		r := log.Record{}
-		r.SetBody(log.StringValue("before"))
+		r.SetBody(attribute.StringValue("before"))
 		logger.Emit(t.Context(), r)
 
 		require.NoError(t, provider.ForceFlush(t.Context()))
 		require.NoError(t, provider.Shutdown(t.Context()))
 
-		r.SetBody(log.StringValue("after"))
+		r.SetBody(attribute.StringValue("after"))
 		logger.Emit(t.Context(), r)
 
 		require.Equal(t, []string{"before"}, bodiesOf(exporter.Records()))
@@ -308,7 +312,7 @@ func TestLogExporterConcurrency(t *testing.T) {
 				<-start
 				for i := range num_rounds {
 					r := log.Record{}
-					r.SetBody(log.StringValue(fmt.Sprintf("emitted-%d-%d", w, i)))
+					r.SetBody(attribute.StringValue(fmt.Sprintf("emitted-%d-%d", w, i)))
 					logger.Emit(ctx, r)
 				}
 			}()

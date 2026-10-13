@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/log/logtest"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -99,8 +100,8 @@ func TestLogExporterContract(t *testing.T) {
 		ts := time.Date(2026, time.July, 31, 12, 34, 56, 789, time.UTC)
 		observed := ts.Add(time.Second)
 
-		r := sdklog.Record{}
-		r.SetBody(log.StringValue("body"))
+		r := logtest.RecordFactory{}.NewRecord()
+		r.SetBody(attribute.StringValue("body"))
 		r.SetEventName("event.name")
 		r.SetSeverity(log.SeverityError)
 		r.SetSeverityText("ERROR")
@@ -112,7 +113,7 @@ func TestLogExporterContract(t *testing.T) {
 		// More than the five attributes a record holds inline, so that the
 		// spilled ones are exercised too.
 		for i := range 8 {
-			r.AddAttributes(log.Int(fmt.Sprintf("k%d", i), i))
+			r.AddAttributes(attribute.Int(fmt.Sprintf("k%d", i), i))
 		}
 
 		require.NoError(t, exporter.Export(t.Context(), []sdklog.Record{r}))
@@ -148,7 +149,7 @@ func TestLogExporterContract(t *testing.T) {
 		t.Cleanup(func() { require.NoError(t, provider.Shutdown(context.Background())) })
 
 		r := log.Record{}
-		r.SetBody(log.StringValue("foo"))
+		r.SetBody(attribute.StringValue("foo"))
 		provider.Logger("scope-name", log.WithInstrumentationVersion("v1.2.3")).Emit(t.Context(), r)
 
 		records := exporter.Records()
@@ -167,8 +168,8 @@ func TestLogExporterContract(t *testing.T) {
 		t.Cleanup(func() { require.NoError(t, provider.Shutdown(context.Background())) })
 
 		r := log.Record{}
-		r.SetBody(log.StringValue("foo"))
-		r.AddAttributes(log.Int("a", 1), log.Int("b", 2), log.Int("c", 3), log.Int("d", 4))
+		r.SetBody(attribute.StringValue("foo"))
+		r.AddAttributes(attribute.Int("a", 1), attribute.Int("b", 2), attribute.Int("c", 3), attribute.Int("d", 4))
 		provider.Logger("otxmem-test").Emit(t.Context(), r)
 
 		records := exporter.Records()
@@ -189,8 +190,8 @@ func TestLogExporterContract(t *testing.T) {
 
 		for _, msg := range []string{"foo", "bar", "baz"} {
 			r := log.Record{}
-			r.SetBody(log.StringValue(msg))
-			r.AddAttributes(log.String("msg", msg))
+			r.SetBody(attribute.StringValue(msg))
+			r.AddAttributes(attribute.String("msg", msg))
 			provider.Logger("otxmem-test").Emit(t.Context(), r)
 		}
 

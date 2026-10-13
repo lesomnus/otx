@@ -6,6 +6,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"sync"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/log"
 	lognoop "go.opentelemetry.io/otel/log/noop"
 	"go.opentelemetry.io/otel/metric"
@@ -279,7 +280,7 @@ func (c *flushController) ForceFlush(ctx context.Context) error {
 func logRecord(body string) log.Record {
 	var r log.Record
 	r.SetSeverity(log.SeverityInfo)
-	r.SetBody(log.StringValue(body))
+	r.SetBody(attribute.StringValue(body))
 
 	return r
 }

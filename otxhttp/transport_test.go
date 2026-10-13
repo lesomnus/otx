@@ -17,6 +17,7 @@ import (
 	"github.com/lesomnus/otx/otxhttp"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -255,7 +256,7 @@ func TestNewTransport(t *testing.T) {
 
 		// Nothing anywhere may leak the password.
 		for _, record := range h.records() {
-			record.WalkAttributes(func(kv otellog.KeyValue) bool {
+			record.WalkAttributes(func(kv attribute.KeyValue) bool {
 				require.NotContains(t, kv.Value.String(), "secret", "attribute %q leaks the userinfo", kv.Key)
 				return true
 			})
@@ -554,7 +555,7 @@ func TestNewTransport(t *testing.T) {
 		require.Equal(t, "*otxhttp_test.dialError", attr(t, record, "error.type").AsString())
 		require.Equal(t, err_want.msg, attr(t, record, "error.message").AsString())
 		require.Equal(t, "https://example.com/x", attr(t, record, "url.full").AsString())
-		require.Equal(t, otellog.KindInt64, attr(t, record, "client.elapsed_ns").Kind())
+		require.Equal(t, attribute.INT64, attr(t, record, "client.elapsed_ns").Type())
 		requireNoAttr(t, record, "http.response.status_code")
 
 		// The message must stay cardinality free: the error text belongs in the

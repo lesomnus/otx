@@ -84,7 +84,7 @@ func TestNewConsoleOutput(t *testing.T) {
 
 		out := runChild(t)
 		require.Contains(t, out, `"Name":"op"`)
-		require.Contains(t, out, `"Body":{"Type":"String","Value":"hello"}`)
+		require.Contains(t, out, `"Body":{"Type":"STRING","Value":"hello"}`)
 		require.Contains(t, out, `"Name":"requests"`)
 
 		// What it prints is the whole record, resource and scope included, so

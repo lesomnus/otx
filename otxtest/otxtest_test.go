@@ -13,6 +13,7 @@ import (
 	"github.com/lesomnus/otx/otxmem"
 	"github.com/lesomnus/otx/otxtest"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	lognoop "go.opentelemetry.io/otel/log/noop"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -248,7 +249,7 @@ func TestNew(t *testing.T) {
 		span.End()
 
 		r := otellog.Record{}
-		r.SetBody(otellog.StringValue("hello"))
+		r.SetBody(attribute.StringValue("hello"))
 		h.LoggerProvider.Logger("direct").Emit(ctx, r)
 
 		counter, err := h.MeterProvider.Meter("direct").Int64Counter("hits")
@@ -557,7 +558,7 @@ func TestRecords(t *testing.T) {
 		require.Len(t, records, 2)
 
 		records[0] = sdklog.Record{}
-		records[1].SetBody(otellog.StringValue("mutated"))
+		records[1].SetBody(attribute.StringValue("mutated"))
 		records = append(records, sdklog.Record{})
 		require.Len(t, records, 3)
 

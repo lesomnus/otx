@@ -11,16 +11,17 @@ import (
 	"github.com/lesomnus/otx/log"
 	"github.com/lesomnus/otx/otxmem"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	logglobal "go.opentelemetry.io/otel/log/global"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
 
 // exportedAttrs returns the attributes of an exported record by key.
-func exportedAttrs(record sdklog.Record) map[string]otellog.Value {
-	attrs := map[string]otellog.Value{}
-	record.WalkAttributes(func(kv otellog.KeyValue) bool {
-		attrs[kv.Key] = kv.Value
+func exportedAttrs(record sdklog.Record) map[string]attribute.Value {
+	attrs := map[string]attribute.Value{}
+	record.WalkAttributes(func(kv attribute.KeyValue) bool {
+		attrs[string(kv.Key)] = kv.Value
 		return true
 	})
 
@@ -32,8 +33,8 @@ func exportedAttrs(record sdklog.Record) map[string]otellog.Value {
 // again on top of a stale one".
 func exportedValues(record sdklog.Record, key string) []string {
 	vs := []string{}
-	record.WalkAttributes(func(kv otellog.KeyValue) bool {
-		if kv.Key == key {
+	record.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) == key {
 			vs = append(vs, kv.Value.String())
 		}
 		return true
