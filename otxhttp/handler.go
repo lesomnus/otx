@@ -30,7 +30,8 @@ func NewHandler(x *otx.Otx, handler http.Handler, operation string, opts ...otel
 // request and puts x into the request context.
 //
 // The tracer provider, meter provider and propagator of x are given to
-// otelhttp; anything in opts is applied after them and so wins.
+// otelhttp. The server span keeps op as its name; anything in opts is applied
+// after these defaults and so wins, including a caller's span name formatter.
 //
 // It panics if x is nil, at wiring time rather than on the first request.
 func NewMiddleware(x *otx.Otx, op string, opts ...otelhttp.Option) func(http.Handler) http.Handler {
@@ -43,6 +44,11 @@ func NewMiddleware(x *otx.Otx, op string, opts ...otelhttp.Option) func(http.Han
 		otelhttp.WithTracerProvider(ps.Tracer()),
 		otelhttp.WithMeterProvider(ps.Meter()),
 		otelhttp.WithPropagators(x.Propagator()),
+		// otelhttp's default now names the span after the HTTP method and
+		// route. Keep the operation this API was handed, as before.
+		otelhttp.WithSpanNameFormatter(func(operation string, _ *http.Request) string {
+			return operation
+		}),
 	}, opts...)
 
 	mw := otelhttp.NewMiddleware(op, opts...)
