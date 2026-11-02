@@ -105,11 +105,9 @@ func TestNewMiddleware(t *testing.T) {
 	t.Run("options given by the caller win over the defaults", func(t *testing.T) {
 		h := newHarness(t)
 
-		// The overlapping option is the one that decides this: an option that
-		// the defaults do not set, such as the span name formatter, would take
-		// effect whichever way round the two slices were joined. The tracer
-		// provider is set by both, so the spans land in exactly one of the two
-		// recorders and that says which slice was applied last.
+		// Both the tracer provider and the span name formatter override a
+		// default. The spans must land in the caller's recorder and carry
+		// the name the caller chose.
 		other := tracetest.NewSpanRecorder()
 		other_provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(other))
 		t.Cleanup(func() {
