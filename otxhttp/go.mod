@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/felixge/httpsnoop v1.1.0
-	github.com/lesomnus/otx v0.0.0-20261109051205-9adcf92d2c8d
+	github.com/lesomnus/otx v0.0.0-20261116004606-bf8c06d82f60
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
 	go.opentelemetry.io/otel v1.47.0

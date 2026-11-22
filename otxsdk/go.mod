@@ -5,7 +5,7 @@ go 1.26.0
 replace github.com/lesomnus/otx => ../
 
 require (
-	github.com/lesomnus/otx v0.0.0-20261109051205-9adcf92d2c8d
+	github.com/lesomnus/otx v0.0.0-20261116004606-bf8c06d82f60
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.23.0
